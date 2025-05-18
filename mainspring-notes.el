@@ -14,8 +14,9 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'json))
-(eval-when-compile (require 'denote))
+(require 'json)
+(unless (require 'denote nil 'noerror)
+  (message "denote is required"))
 
 (defgroup mainspring-notes nil
   "Interface for notes"
