@@ -29,12 +29,17 @@
 (defface mainspring-notes-id-face
   '()
   "Face used for ID part of candidate."
-  :group 'mainspring-notes-id)
+  :group 'mainspring-notes)
 
 (defface mainspring-notes-title-face
   '()
   "Face used for title part of candidate."
-  :group 'mainspring-notes-title)
+  :group 'mainspring-notes)
+
+(defface mainspring-notes-filetags-face
+  '()
+  "Face used for filetags part of candidate."
+  :group 'mainspring-notes)
 
 (defun mainspring-query-notes (query max)
   "Uses `rg' to search the notes in `denote-directory.';
@@ -60,13 +65,13 @@ Requires that Emacs be compiled with JSON support."
        (json-parse-string
         (shell-command-to-string
          (concat 
-          (format "rg --json '(^\\#\\+title:|^\\#\\+identifier:|^\\#\\+filetags:)' %s"  (string-join notes " "))
+          (format "rg --json '^\\#\\+(title|identifier|filetags):' %s"  (string-join notes " "))
           " | "
           "rg '\"type\":\"match\"'"
           " | "
           "jq -s 'reduce .[] as $item ({}; ($item.data.path.text) as $path "
-          "| ($item.data.submatches[0].match.text | sub(\":$\"; \"\") | sub(\"^#\\\\+\"; \"\")) as $key "
-          "| ($item.data.lines.text | sub(\"(^#\\\\+title:\\\\s+|^#\\\\+identifier:\\\\s+|^#\\\\+filetags:\\\\s+)\"; \"\") | sub(\"\\\\s$\"; \"\")) as $value "
+          "| ($item.data.submatches[0].match.text | .[2:-1]) as $key "
+          "| ($item.data.lines.text | sub(\"^#.(title|identifier|filetags): +\"; \"\") | .[:-1]) as $value"
           "| .[$path] += {($key): $value})'"))))
       notes-with-meta)))
 
@@ -81,11 +86,14 @@ This must be an async source because it is calling out to `rg' and `jq'."
   (mapcar (lambda (note)
             (list (let* ((meta (car (cdr note)))
                          (title (gethash "title" meta))
-                         (id (gethash "identifier" meta)))
+                         (id (gethash "identifier" meta))
+                         (filetags (gethash "filetags" meta)))
                     (concat
                      (propertize id 'face 'mainspring-notes-id-face)
                      " "
-                     (propertize title 'face 'mainspring-notes-title-face)))
+                     (propertize title 'face 'mainspring-notes-title-face)
+                     " "
+                     (propertize filetags 'face 'mainspring-notes-filetags-face)))
                   (car note)))
           (mainspring-get-notes-meta
            (mainspring-query-notes input 50))))
